@@ -4,6 +4,8 @@
 
 ## Trạng thái project — nhật ký (mới nhất ở trên)
 
+- **2026-10-23 · Đã đẩy lên GitHub:** repo `https://github.com/Huy-TA/SaaS-Dashboard` (nhánh `main`), commit `843e503` (đăng nhập Google) trên `fadb344` (bản đầu); 73 file. Trước khi commit đã quét nội dung với 7 giá trị thật trong `.env.local` (cả 3 biến đăng nhập người dùng đã điền): **0 chỗ lộ**; trên GitHub chỉ có `app/.env.example`, không có `.env.local` hay file key. Các mục "chưa commit / chưa đẩy" bên dưới đã xong.
+
 - **2026-10-23 · Đăng nhập Google làm lại (theo yêu cầu mới):** NextAuth v4 + Google; `/` là màn đăng nhập, chưa đăng nhập vào `/dashboard` → về `/`; chỉ email trong `ALLOWED_EMAILS` (hỗ trợ `@tenmien`), người khác thấy "Bạn không có quyền truy cập vui lòng liên hệ Admin"; góc phải header có ảnh đại diện + tên + "Đăng xuất". Biến: `AUTH_SECRET` (đã **tự sinh** vào `.env.local`), `AUTH_GOOGLE_ID`, `AUTH_GOOGLE_SECRET`, `ALLOWED_EMAILS` (3 biến này **đang trống — người dùng cần điền**). Test bằng giá trị thử nghiệm trong tiến trình: 10/10 bài HTTP + trình duyệt đạt; build production đạt. Thay đổi này **chưa commit**.
 
 - **2026-10-23 · Quản lý mã nguồn:** đã `git init` repo ở `Dashboard/`, commit đầu `fadb344` (70 file) gồm `docs/`, `app/`, `.claude/skills/`, `README.md`, `app/.env.example`. `.gitignore` ở gốc và `app/` chặn `.env*`, file key, `node_modules`, `.next`. Quét nội dung 70 file với 3 giá trị thật trong `.env.local`: **0 chỗ lộ**. **Chưa đẩy lên GitHub** — đang chờ người dùng tạo repo trống (khuyến nghị Private) và gửi link; máy chưa có GitHub CLI, có Git Credential Manager.
