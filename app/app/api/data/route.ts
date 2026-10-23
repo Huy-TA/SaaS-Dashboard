@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth';
 import { fetchSheetValues, TAB } from '@/lib/google-sheets';
+import { AUTH_ENV, authOptions, isAllowed } from '@/lib/auth';
 import { REGION_UNKNOWN } from '@/lib/aggregate';
 import type { ApiData, Row } from '@/lib/types';
 
@@ -7,11 +9,17 @@ const SHEET_ENV = ['GOOGLE_SHEETS_SPREADSHEET_ID', 'GOOGLE_SERVICE_ACCOUNT_EMAIL
 
 /* Chỉ báo biến nào ĐÃ CÓ — không bao giờ trả giá trị. */
 function envStatus(): Record<string, boolean> {
-  return Object.fromEntries(SHEET_ENV.map((k) => [k, Boolean(process.env[k])]));
+  return Object.fromEntries([...SHEET_ENV, ...AUTH_ENV].map((k) => [k, Boolean(process.env[k])]));
 }
 
-/* Nơi DUY NHẤT chạm credential Google Sheets. Trả về dòng đã ép kiểu — không trả khoá. */
+/* Nơi DUY NHẤT chạm credential Google Sheets. Trả về dòng đã ép kiểu — không trả khoá.
+   Lớp chặn thứ hai: tự kiểm tra phiên đăng nhập, không chỉ dựa vào proxy. */
 export async function GET() {
+  const session = await getServerSession(authOptions);
+  if (!isAllowed(session?.user?.email)) {
+    return NextResponse.json({ error: 'Chưa đăng nhập hoặc không có quyền.' }, { status: 401 });
+  }
+
   try {
     const { values, fetchedAt } = await fetchSheetValues();
     if (values.length < 2) {

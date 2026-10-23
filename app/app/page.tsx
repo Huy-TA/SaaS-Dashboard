@@ -1,54 +1,89 @@
-import { Suspense } from 'react';
-import Link from 'next/link';
+'use client';
+import { Suspense, useEffect, useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { signIn, signOut } from 'next-auth/react';
 import { Shell } from '@/components/Shell';
 import { Icon } from '@/components/Icon';
-import { fetchSheetValues } from '@/lib/google-sheets';
-import { APP_NAME, clockVN, fmtInt } from '@/lib/aggregate';
+import { APP_NAME } from '@/lib/aggregate';
 
-/* Trang giới thiệu — cùng Shell, cùng token với dashboard. Một nút brand duy nhất. */
-export default function HomePage() {
+/* Màn đăng nhập — cùng Shell 1600×900, cùng token với dashboard (globals.css: #login,
+   .logincard, #gbtn, .err). Chỉ có một việc: bấm nút Google. Đã đăng nhập thì vào thẳng /dashboard. */
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<Shell><span /></Shell>}>
+      <Login />
+    </Suspense>
+  );
+}
+
+function Login() {
+  const router = useRouter();
+  const params = useSearchParams();
+  const error = params.get('error');
+  const deniedEmail = params.get('email');
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    let alive = true;
+    fetch('/api/auth/session')
+      .then((r) => r.json() as Promise<{ user?: { email?: string } }>)
+      .then((s) => { if (alive && s.user?.email && !error) router.replace('/dashboard'); })
+      .catch(() => {});
+    return () => { alive = false; };
+  }, [router, error]);
+
   return (
     <Shell>
-      <div style={{ margin: 'auto', width: 520, display: 'flex', flexDirection: 'column',
-                    alignItems: 'center', gap: 14, textAlign: 'center' }}>
-        <span className="lmark" style={{ width: 40, height: 40, flex: '0 0 40px', borderRadius: 11 }}>
-          <Icon name="activity" />
-        </span>
-        <h1 style={{ fontSize: 28, fontWeight: 600, letterSpacing: '-.03em' }}>{APP_NAME}</h1>
-        <p style={{ fontSize: 14, color: 'var(--ink2)', lineHeight: 1.6 }}>
-          Theo dõi tỷ lệ khách rời bỏ và doanh thu tháng (MRR) theo gói, khu vực và thời gian sử dụng —
-          để thấy sớm nhóm khách nào đang mất và mất bao nhiêu doanh thu.
-        </p>
-        <Link className="ibtn pri" href="/dashboard" style={{ height: 36, padding: '0 18px', fontSize: 13 }}>
-          Mở dashboard<Icon name="chevron-right" className="lu lu-sm" />
-        </Link>
-        <Suspense fallback={<span className="chip"><span className="spin" style={{ width: 11, height: 11, flex: '0 0 11px' }} />Đang kiểm tra kết nối…</span>}>
-          <DataStatus />
-        </Suspense>
+      <div id="login" style={{ width: '100%', height: '100%' }}>
+        <div className="logincard">
+          <div className="loginbrand">
+            <span className="lmark"><Icon name="activity" /></span>
+            <b>{APP_NAME}</b>
+          </div>
+          <h1>Đăng nhập để xem dashboard</h1>
+          <p className="lead">
+            Theo dõi tỷ lệ khách rời bỏ và doanh thu tháng theo gói, khu vực và thời gian sử dụng.
+            Dùng tài khoản Google đã được cấp quyền.
+          </p>
+
+          <button id="gbtn" disabled={busy}
+                  onClick={() => { setBusy(true); void signIn('google', { callbackUrl: '/dashboard' }); }}>
+            <GoogleLogo />
+            {busy ? 'Đang chuyển tới Google…' : 'Đăng nhập bằng Google'}
+          </button>
+
+          {error === 'AccessDenied' && (
+            <div className="err" role="alert">
+              <b>Bạn không có quyền truy cập vui lòng liên hệ Admin</b>
+              {deniedEmail && <>Tài khoản <code>{deniedEmail}</code> chưa có trong danh sách được phép.<br /></>}
+              <button onClick={() => void signOut({ callbackUrl: '/' })}>Đăng nhập bằng tài khoản khác</button>
+            </div>
+          )}
+          {error && error !== 'AccessDenied' && (
+            <div className="err" role="alert">
+              <b>Không đăng nhập được</b>
+              {error === 'Configuration'
+                ? 'Đăng nhập chưa được cấu hình đủ. Admin cần kiểm tra AUTH_SECRET, AUTH_GOOGLE_ID, AUTH_GOOGLE_SECRET trong .env.local.'
+                : 'Google không trả về phiên đăng nhập hợp lệ. Thử lại sau ít phút.'}
+              <code style={{ marginLeft: 4 }}>{error}</code>
+            </div>
+          )}
+
+          <p className="legal">Chỉ dành cho người được cấp quyền. Dữ liệu chỉ đọc, không thay đổi Google Sheet.</p>
+        </div>
       </div>
     </Shell>
   );
 }
 
-async function DataStatus() {
-  let status: { n: number; fetchedAt: string } | null = null;
-  try {
-    const { values, fetchedAt } = await fetchSheetValues();
-    status = { n: values.slice(1).filter((r) => r[0]).length, fetchedAt };
-  } catch {
-    status = null;
-  }
-
-  if (!status) {
-    return (
-      <span className="chip" style={{ color: 'var(--bad)' }}>
-        <Icon name="triangle-alert" className="lu lu-xs" />Chưa kết nối được Google Sheets
-      </span>
-    );
-  }
+/* Logo G bốn màu bản chính thức — theo quy định nhận diện của Google cho nút tự dựng (globals.css #gbtn). */
+function GoogleLogo() {
   return (
-    <span className="chip">
-      <Icon name="database" className="lu lu-xs" />Google Sheets · <b>{fmtInt(status.n)}</b> khách · đọc lúc {clockVN(status.fetchedAt)}
-    </span>
+    <svg width="20" height="20" viewBox="0 0 48 48" aria-hidden>
+      <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z" />
+      <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z" />
+      <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z" />
+      <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z" />
+    </svg>
   );
 }

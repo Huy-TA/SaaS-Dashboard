@@ -23,8 +23,8 @@ Cần Node.js 20 trở lên.
 ```bash
 cd app
 npm install
-cp .env.example .env.local     # rồi điền 3 biến Google Sheets
-npm run dev                    # mở http://localhost:3000
+cp .env.example .env.local     # rồi điền các biến bên dưới
+npm run dev                    # mở http://localhost:3000 → đăng nhập Google
 ```
 
 Biến môi trường (`app/.env.local`, **không commit**):
@@ -34,6 +34,10 @@ Biến môi trường (`app/.env.local`, **không commit**):
 | `GOOGLE_SHEETS_SPREADSHEET_ID` | đoạn giữa `/d/` và `/edit` trong link Google Sheet |
 | `GOOGLE_SERVICE_ACCOUNT_EMAIL` | `client_email` trong file JSON key của service account |
 | `GOOGLE_PRIVATE_KEY` | `private_key` trong file JSON key, giữ trên một dòng với `\n` |
+| `AUTH_SECRET` | chuỗi ngẫu nhiên: `node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"` |
+| `AUTH_GOOGLE_ID` · `AUTH_GOOGLE_SECRET` | Google Cloud → Credentials → OAuth client ID (Web application). Redirect URI: `http://localhost:3000/api/auth/callback/google` |
+| `ALLOWED_EMAILS` | email được vào, phân tách bằng dấu phẩy; `@congty.vn` cho cả tên miền |
+| `NEXTAUTH_URL` | chỉ khi deploy: địa chỉ thật của dashboard |
 
 Service account cần được **share quyền Viewer** trên Google Sheet. Tab dữ liệu: `cleaned_subscription_saas`.
 
@@ -49,4 +53,4 @@ npm start
 
 - Credential chỉ nằm ở `app/.env.local` (local) và Environment Variables của nơi deploy — đã chặn bằng `.gitignore` ở cả gốc repo lẫn `app/`.
 - Khoá Google chỉ được đọc ở server (`app/lib/google-sheets.ts`, `app/app/api/data/route.ts`, có `import 'server-only'`); trình duyệt chỉ nhận dữ liệu đã tổng hợp.
-- Dashboard **không có đăng nhập**. Trước khi deploy công khai (ví dụ Vercel), bật một lớp bảo vệ như Vercel Deployment Protection.
+- Đăng nhập Google, chỉ email trong `ALLOWED_EMAILS` xem được dashboard; chặn ở `proxy.ts` và tự kiểm tra lại trong `/api/data`.

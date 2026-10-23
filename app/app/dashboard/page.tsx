@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState, useSyncExternalStore } from 'react';
+import { useRouter } from 'next/navigation';
 import { Shell } from '@/components/Shell';
 import { Sidebar } from '@/components/Sidebar';
 import { TopBar } from '@/components/TopBar';
@@ -24,9 +25,9 @@ import {
   metricOf, periodLabel, periodRange, presetRange, previousRange, qualityChecks, rowsForParam,
   tenureGroup, type GroupRow,
 } from '@/lib/aggregate';
-import type { Aggregate, Alert, ApiData, Filters, Grain, Level, PageId, ParamKey, Row } from '@/lib/types';
+import type { Aggregate, Alert, ApiData, Filters, Grain, Level, PageId, ParamKey, Row, SessionUser } from '@/lib/types';
 
-type LoadState = 'loading' | 'error' | 'ready';
+type LoadState = 'loading' | 'error' | 'ready' | 'signedOut';
 type Theme = 'light' | 'dark';
 
 const GRAINS: { key: Grain; label: string }[] = [
@@ -50,7 +51,9 @@ export default function DashboardPage() {
   const [state, setState] = useState<LoadState>('loading');
   const [error, setError] = useState('');
   const [fetchedAt, setFetchedAt] = useState('');
+  const router = useRouter();
   const [env, setEnv] = useState<Record<string, boolean>>({});
+  const [user, setUser] = useState<SessionUser | null>(null);
   const [busy, setBusy] = useState(false);
   const [filters, setFilters] = useState<Filters>(DEFAULT_FILTERS);
   const [page, setPage] = useState<PageId>('home');
@@ -62,12 +65,21 @@ export default function DashboardPage() {
   const [modal, setModal] = useState(false);
 
   useEffect(() => { document.documentElement.dataset.theme = theme; }, [theme]);
-  useEffect(() => { void load(); }, []);
+  // Phiên hết hạn hoặc email bị gỡ khỏi ALLOWED_EMAILS ⇒ quay về màn đăng nhập
+  useEffect(() => { if (state === 'signedOut') router.replace('/'); }, [state, router]);
+  useEffect(() => {
+    void load();
+    fetch('/api/auth/session')
+      .then((r) => r.json() as Promise<{ user?: SessionUser }>)
+      .then((s) => setUser(s.user ?? null))
+      .catch(() => setUser(null));
+  }, []);
 
   async function load(): Promise<void> {
     setBusy(true);
     try {
       const res = await fetch('/api/data');
+      if (res.status === 401) { setState('signedOut'); return; }
       const json = (await res.json()) as ApiData;
       setEnv(json.env ?? {});
       if (json.error) throw new Error(json.error);
@@ -124,7 +136,7 @@ export default function DashboardPage() {
                rowCount={rows.length} fetchedAt={fetchedAt} />
 
       <main id="main">
-        <TopBar page={page} fetchedAt={fetchedAt} busy={busy} alerts={alertList}
+        <TopBar page={page} fetchedAt={fetchedAt} busy={busy} alerts={alertList} user={user}
                 filterCount={filterCount} theme={theme}
                 onRefresh={load} onAlert={openAlert} onExport={() => setModal(true)}
                 onToggleTheme={toggleTheme} onOpenFilters={() => setDrawer(true)} />
@@ -577,6 +589,10 @@ const ENV: [string, string][] = [
   ['GOOGLE_SHEETS_SPREADSHEET_ID', 'Đọc Sheet'],
   ['GOOGLE_SERVICE_ACCOUNT_EMAIL', 'Đọc Sheet'],
   ['GOOGLE_PRIVATE_KEY', 'Đọc Sheet'],
+  ['AUTH_SECRET', 'Mã hoá phiên đăng nhập'],
+  ['AUTH_GOOGLE_ID', 'Đăng nhập Google (OAuth Client)'],
+  ['AUTH_GOOGLE_SECRET', 'Đăng nhập Google (OAuth Client)'],
+  ['ALLOWED_EMAILS', 'Danh sách email được vào'],
 ];
 
 function SourcePage({ rows, fetchedAt, bounds, env, L }: {

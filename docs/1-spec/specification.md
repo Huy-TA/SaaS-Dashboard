@@ -143,7 +143,7 @@ Tooltip thẻ MRR có thêm **ARPA tổng** (`Trung bình … USD / khách đang
 | Thanh chào | ngày + lời chào theo **UTC+7** | không theo giờ máy |
 | Sáng/tối | chuyển được, cả hai chế độ đều phải kiểm | |
 | Cảnh báo | bấm vào → lọc tới nhóm đó + nhảy trang | 4 loại, xem §9 và `components.md` §8 |
-| Đăng nhập | **không có** — người dùng bỏ đăng nhập Google (2026-10-23) | ai có link cũng xem được; deploy Vercel cần lớp bảo vệ khác. Chi tiết `components.md` §11 |
+| Đăng nhập | **có** — Google, chỉ email trong `ALLOWED_EMAILS`; người khác thấy "Bạn không có quyền truy cập vui lòng liên hệ Admin" (làm lại 2026-10-23) | chưa đăng nhập vào `/dashboard` → về màn đăng nhập. Chi tiết `components.md` §11 |
 
 ### 6.1 Bộ lọc trạng thái tác động tới đâu
 
@@ -222,7 +222,7 @@ Khuôn bốn ngưỡng của skill (chi phí đơn vị, lỗ, mục tiêu, cạ
 
 | Có trong v1 | Để lại sau |
 |---|---|
-| 4 trang, 5 KPI, 4 bộ lọc, xuất dữ liệu, cảnh báo | Dự đoán khách sắp churn, revenue at risk (người dùng đã loại khỏi phạm vi) · Đăng nhập (đã làm rồi bỏ 2026-10-23; cần bảo vệ khác trước khi deploy) |
+| 4 trang, 5 KPI, 4 bộ lọc, xuất dữ liệu, cảnh báo, đăng nhập Google | Dự đoán khách sắp churn, revenue at risk (người dùng đã loại khỏi phạm vi) |
 | Đọc Google Sheets qua service account | Churn theo tháng, MoM/YoY MRR (cần dữ liệu theo tháng) |
 
 Không có trong v1, và không thương lượng: trang phân tích thêm (phễu chuyển đổi, ma trận thời gian, cohort) · chatbox AI · ô tìm kiếm toàn cục · xuất PNG/PDF.

@@ -257,6 +257,7 @@ Danh sách icon dùng trong dashboard này:
 | `i-check` | dấu tick trong checkbox |
 | `i-arrow-up` · `i-arrow-down` | so kỳ trước trên thẻ KPI |
 | `i-chevron-down` | lối tắt `Đang xem: [chỉ số] ▾` ở thanh chào |
+| `i-log-out` | nút `Đăng xuất` ở góc phải header |
 | `i-rotate-ccw` | nút thử lại khi lỗi |
 | `i-circle-check` | "Đạt" / "Đã có" ở trang 4; dòng "Không có nhóm nào vượt ngưỡng" trong popover cảnh báo |
 
@@ -264,11 +265,23 @@ Giờ đọc dữ liệu dùng chấm `.led`, không dùng icon đồng hồ.
 
 ## 11 · Đăng nhập
 
-**Không có màn đăng nhập** — người dùng bỏ đăng nhập Google (2026-10-23), sau khi đã làm và kiểm tra xong. Code đăng nhập (`lib/auth.ts`, `app/api/auth/[...nextauth]/route.ts`, `proxy.ts`) đã xoá; `/` trở lại là trang giới thiệu có nút `Mở dashboard`; `/dashboard` mở trực tiếp.
+**Có màn đăng nhập Google** (người dùng yêu cầu làm lại 2026-10-23, thay quyết định bỏ trước đó).
 
-⚠ Hệ quả: **ai có link cũng xem được số liệu**. Chạy local thì an toàn. Nếu deploy lên Vercel cần một lớp bảo vệ khác (ví dụ Vercel Deployment Protection) — chưa chốt.
+- **Màn đăng nhập ở `/`**: logo + tên "SaaS Churn & MRR", một câu mô tả, nút **"Đăng nhập bằng Google"** theo chuẩn nhận diện Google (`#gbtn`, logo G bốn màu — không phải nút brand), ghi chú "Chỉ dành cho người được cấp quyền". Cùng `Shell` 1600×900, `#login` nền `--sub`, card ở giữa. Đã đăng nhập thì vào thẳng `/dashboard`.
+- **Chặn truy cập**: chưa đăng nhập vào `/dashboard` → tự chuyển về `/`. Hai lớp: `proxy.ts` (trang → `/`, API → 401) và `/api/data` tự kiểm tra phiên.
+- **Ai được vào**: chỉ email trong `ALLOWED_EMAILS` (phân tách bằng dấu phẩy; `@congty.vn` cho cả tên miền). Danh sách rỗng ⇒ không ai vào. Email ngoài danh sách → thông báo **"Bạn không có quyền truy cập vui lòng liên hệ Admin"** + email bị từ chối + nút "Đăng nhập bằng tài khoản khác". Gỡ email khỏi danh sách có hiệu lực ở lần tải dữ liệu kế tiếp. Phiên kéo dài 8 giờ.
+- **Góc phải header**: ảnh đại diện Google (26px, tròn; lỗi ảnh → chữ cái đầu trên nền `--brand`) + tên + nút `.ibtn` "Đăng xuất" (`i-log-out`), ngăn với nhóm nút bằng hairline.
 
-Trang 4 liệt kê biến môi trường — chỉ tên, trạng thái có/không lấy từ server, **không bao giờ hiện giá trị**: `GOOGLE_SHEETS_SPREADSHEET_ID` · `GOOGLE_SERVICE_ACCOUNT_EMAIL` · `GOOGLE_PRIVATE_KEY` (đọc Sheet).
+Trang 4 liệt kê biến môi trường — chỉ tên, trạng thái có/không lấy từ server, **không bao giờ hiện giá trị**:
+
+| Biến | Dùng cho |
+|---|---|
+| `GOOGLE_SHEETS_SPREADSHEET_ID` · `GOOGLE_SERVICE_ACCOUNT_EMAIL` · `GOOGLE_PRIVATE_KEY` | đọc Sheet |
+| `AUTH_SECRET` | mã hoá phiên đăng nhập (sinh ngẫu nhiên) |
+| `AUTH_GOOGLE_ID` · `AUTH_GOOGLE_SECRET` | OAuth Client của Google |
+| `ALLOWED_EMAILS` | danh sách email / tên miền được vào |
+
+File thêm ngoài danh sách đóng của skill `dashboard-build`: `lib/auth.ts` · `app/api/auth/[...nextauth]/route.ts` · `proxy.ts`.
 
 ## 12 · Giả định cần bạn xác nhận
 

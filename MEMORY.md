@@ -2,6 +2,21 @@
 
 > Kiến thức riêng của Project/dataset này. Luật làm việc nằm ở `CLAUDE.md`.
 
+## Trạng thái project — nhật ký (mới nhất ở trên)
+
+- **2026-10-23 · Đăng nhập Google làm lại (theo yêu cầu mới):** NextAuth v4 + Google; `/` là màn đăng nhập, chưa đăng nhập vào `/dashboard` → về `/`; chỉ email trong `ALLOWED_EMAILS` (hỗ trợ `@tenmien`), người khác thấy "Bạn không có quyền truy cập vui lòng liên hệ Admin"; góc phải header có ảnh đại diện + tên + "Đăng xuất". Biến: `AUTH_SECRET` (đã **tự sinh** vào `.env.local`), `AUTH_GOOGLE_ID`, `AUTH_GOOGLE_SECRET`, `ALLOWED_EMAILS` (3 biến này **đang trống — người dùng cần điền**). Test bằng giá trị thử nghiệm trong tiến trình: 10/10 bài HTTP + trình duyệt đạt; build production đạt. Thay đổi này **chưa commit**.
+
+- **2026-10-23 · Quản lý mã nguồn:** đã `git init` repo ở `Dashboard/`, commit đầu `fadb344` (70 file) gồm `docs/`, `app/`, `.claude/skills/`, `README.md`, `app/.env.example`. `.gitignore` ở gốc và `app/` chặn `.env*`, file key, `node_modules`, `.next`. Quét nội dung 70 file với 3 giá trị thật trong `.env.local`: **0 chỗ lộ**. **Chưa đẩy lên GitHub** — đang chờ người dùng tạo repo trống (khuyến nghị Private) và gửi link; máy chưa có GitHub CLI, có Git Credential Manager.
+- **2026-10-23 · Build production:** `npm run build` thành công, không lỗi; TypeScript và ESLint sạch. Dashboard chạy local ở `http://localhost:3000`.
+- **2026-10-23 · Review đối chiếu code ↔ 4 tài liệu:** chức năng và số liệu build đúng — khớp toàn bộ số tham chiếu `specification.md` §11; 0 lỗi console; bố cục đúng ở sidebar mở/thu gọn, sáng/tối, cửa sổ 16:9 và 1400×1000. Đã sửa 4 điểm nhỏ (số khách trong drawer tính cả bộ lọc trạng thái · tooltip `.tip` cho sidebar thu gọn · tooltip KPI mở bằng bàn phím · ARPA tổng trong tooltip thẻ MRR) và cập nhật 4 tài liệu cho khớp code.
+- **2026-10-23 · Vấn đề còn lại:** (1) chưa đẩy code lên GitHub; (2) **không có đăng nhập** → trước khi deploy Vercel cần lớp bảo vệ khác (gợi ý Vercel Deployment Protection), chưa chốt; (3) 4 ngưỡng (rời bỏ 10% / 15%, % DT mất 5% / 10%) chưa xác nhận với đội Growth/Finance; (4) G18 ("khâu tốn thời gian nhất") chưa có thông tin; (5) dọn dẹp chưa làm: package `next-auth` không còn dùng, `app/AGENTS.md` bản mặc định.
+- **2026-10-23 · Đăng nhập:** đã làm Google login (NextAuth + danh sách email), test đạt, rồi **bỏ theo yêu cầu người dùng**. Đã xoá `lib/auth.ts`, route `/api/auth`, `proxy.ts`; `/` là trang giới thiệu, `/dashboard` mở trực tiếp.
+- **2026-10-23 · Dashboard đã build trong `app/`:** theo skill `dashboard-build` và 4 tài liệu đã chốt; các điều chỉnh sau build đều do người dùng chọn và đã ghi vào `docs/` (xem mục "Build" bên dưới).
+- **2026-10-23 · Kết nối Google Sheets:** service account đọc file/tab `cleaned_subscription_saas` (3.000 dòng) qua 3 biến trong `app/.env.local`; chỉ đọc ở server, cache 15 phút. Sheet đã sửa locale `en_US` và ghi lại dữ liệu sạch (khớp từng ô với CSV).
+- **2026-10-23 · Môi trường Next.js trong `app/`:** Next 16.4.2 · React 19.3 · TypeScript · Tailwind 4 · App Router · không `src/`; đã cài `googleapis`, `recharts`, `next-auth`, `server-only`. Node 24.20.0 cài bản portable ở `%LOCALAPPDATA%\Programs\nodejs` (không cần admin).
+- **2026-10-23 · Tài liệu thiết kế:** `specification.md`, `design.md`, `layout.md`, `components.md` viết từ dataset thật trên Google Sheet, người dùng review và chốt (chấp nhận G1–G30; G28 về đăng nhập sau đó hết hiệu lực).
+- **2026-10-23 · Phạm vi hiện tại:** dashboard **theo dõi** churn & MRR — 4 trang (Tổng quan · Theo gói · Theo khu vực · Nguồn dữ liệu), 5 KPI, 4 bộ lọc (ngày đăng ký · gói · khu vực · trạng thái), 4 lựa chọn chỉ số, cảnh báo vượt ngưỡng, bảng Tổng hợp / Từng khách, xuất CSV, sáng/tối. **Ngoài phạm vi:** dự đoán khách sắp churn / revenue at risk, churn theo tháng, MoM/YoY MRR (dữ liệu là snapshot), đăng nhập.
+
 ## Dataset
 
 - **Nội dung:** khách hàng của một sản phẩm SaaS bán gói thuê bao hằng tháng.
@@ -49,20 +64,20 @@
 ### Quy tắc bộ lọc trạng thái
 - **5 thẻ KPI bỏ qua bộ lọc trạng thái**, chỉ theo ngày · gói · khu vực. Lý do: mỗi KPI đã có định nghĩa cố định theo trạng thái; lọc theo trạng thái sẽ cho 0% / 100% / MRR = 0, sai về kinh doanh.
 - Bộ lọc trạng thái áp dụng cho **chart phân bổ, bảng khách hàng và xuất dữ liệu**.
-- Khi bộ lọc trạng thái khác "Tất cả", cạnh hàng KPI có chú thích "Chỉ số tổng không đổi theo bộ lọc trạng thái".
+- Khi bộ lọc trạng thái khác "Tất cả", thanh chào hiện chú thích "KPI không đổi theo bộ lọc trạng thái".
 
 ### Khác
-- ~~Có màn đăng nhập~~ → **đã bỏ** (2026-10-23, xem mục Build bên dưới).
+- **Có màn đăng nhập Google** — bỏ rồi làm lại theo yêu cầu người dùng (2026-10-23). Xem nhật ký đầu file.
 - **Tần suất làm mới data:** theo template của skill `dashboard-build`.
 - **`Data_Flag`:** chỉ hiển thị ở trang Nguồn dữ liệu (số dòng theo từng cờ); không làm bộ lọc, không đưa vào chart theo dõi.
 
 ### Tài liệu thiết kế
 - **4 file trong `docs/` đã chốt 2026-10-23** — người dùng chấp nhận toàn bộ giả định G1–G30. Nguồn sự thật cho build là `docs/`, không phải mục này.
-- **Đăng nhập:** Google, chỉ email trong danh sách cho phép (lưu ở biến môi trường, người dùng tự điền).
+- **Đăng nhập:** Google, chỉ email trong `ALLOWED_EMAILS` (`components.md` §11).
 - **Tiêu chí người dùng nhấn mạnh khi build: đẹp và dễ đọc** — ưu tiên khi phải chọn giữa nhiều cách trình bày.
 
 ### Build (2026-10-23)
-- **Đăng nhập: KHÔNG có (2026-10-23).** Đã làm NextAuth + Google allowlist, test đạt, rồi người dùng yêu cầu **xoá** (chưa muốn tạo OAuth Client). Đã xoá 3 file auth, `/` về trang giới thiệu, `/dashboard` mở trực tiếp. Package `next-auth` vẫn cài (thuộc bộ cài ban đầu). Rủi ro còn treo: deploy Vercel thì link công khai — nhắc người dùng trước khi deploy.
+- **Đăng nhập (2026-10-23):** làm → người dùng xoá → người dùng yêu cầu làm lại với biến kiểu Auth.js (`AUTH_SECRET`, `AUTH_GOOGLE_ID`, `AUTH_GOOGLE_SECRET`) + `ALLOWED_EMAILS`. Code dùng next-auth **v4** nên `secret` truyền tay từ `AUTH_SECRET` (v4 không tự đọc tên này). 3 file ngoài danh sách đóng: `lib/auth.ts`, `app/api/auth/[...nextauth]/route.ts`, `proxy.ts`. Ảnh đại diện dùng `next/image` `unoptimized` + `referrerPolicy="no-referrer"` (ảnh Google hay chặn khi có referrer).
 - Đã cài thêm `server-only` (người dùng đồng ý).
 - **Rà soát sau build (2026-10-23):** người dùng chọn theo tiêu chí "sếp đọc dễ hơn" — chú thích KPI 3, 5 ghi phạm vi thời gian và đổi theo bộ lọc · tooltip `.tip` trên nhãn KPI · chart xu hướng mặc định Quý. Bar tenure không lọc khi bấm; nút ở header; nút xác nhận trong drawer/bảng xuất màu mực — đã sửa tài liệu cho khớp code.
 - **Đối chiếu yêu cầu chấm điểm (2026-10-23):** tiêu đề chart = **câu hỏi nghiệp vụ cố định, không chứa số** (người dùng bỏ tiêu đề dạng kết luận tự tính vì data cập nhật liên tục), **bỏ hẳn dòng chú thích dưới thẻ KPI** (người dùng: data cập nhật liên tục, chữ dưới thẻ rối — giải thích chỉ ở tooltip), ẩn pill khi không có kỳ trước, tỷ lệ so kỳ ghi "điểm %", lối tắt "Đang xem ▾" mở drawer, nút `Tổng hợp | Từng khách` ở bảng trang 2, 3. Người dùng không thích chữ lặp ý trên màn hình, và thấy câu công thức trên màn hình "không chuyên nghiệp" → dòng phụ chỉ ghi `Tên chỉ số (đơn vị) · chiều`, công thức để trong tooltip.
@@ -75,20 +90,20 @@
 
 ## Định nghĩa chỉ số (chốt)
 
-Data là snapshot → mọi tỷ lệ là **cộng dồn từ 2023 đến nay**, không phải theo tháng. Không dùng chữ "lũy kế" trên giao diện; ghi ý nghĩa vào tên và dòng chú thích.
+Data là snapshot → mọi tỷ lệ là **cộng dồn từ 2023 đến nay**, không phải theo tháng. Không dùng chữ "lũy kế" trên giao diện. Thẻ KPI **không có dòng chú thích dưới**; ý nghĩa và phạm vi nằm ở tooltip trên nhãn thẻ.
 
 ### 5 thẻ KPI
 
-| # | Tên hiển thị | Cách tính | Chú thích dưới thẻ |
-|---|---|---|---|
-| 1 | Doanh thu tháng hiện tại (MRR) | Σ `monthly_revenue` của khách Active | Tổng phí hằng tháng của khách đang dùng |
-| 2 | Khách đang dùng | Đếm khách Active | |
-| 3 | Tỷ lệ khách đã rời bỏ | Số khách Churned / tổng số khách | Trên tổng số khách từng đăng ký, từ 2023 đến nay |
-| 4 | Doanh thu tháng đã mất do khách rời | Σ `monthly_revenue` của khách Churned | Tổng phí hằng tháng của các khách đã rời bỏ |
-| 5 | % doanh thu đã mất | (4) / ((1) + (4)) | Phần doanh thu tháng đã mất trên tổng doanh thu từng có |
+| # | Tên hiển thị | Cách tính |
+|---|---|---|
+| 1 | Doanh thu tháng hiện tại (MRR) | Σ `monthly_revenue` của khách Active |
+| 2 | Khách đang dùng | Đếm khách Active |
+| 3 | Tỷ lệ khách đã rời bỏ | Số khách Churned / tổng số khách |
+| 4 | Doanh thu tháng đã mất do khách rời | Σ `monthly_revenue` của khách Churned |
+| 5 | % doanh thu đã mất | (4) / ((1) + (4)) |
 
 ### Chỉ số phụ
-- **Doanh thu trung bình mỗi khách (ARPA)** = (1) / (2). Dùng trong chart/bảng, không lên thẻ KPI.
+- **Doanh thu trung bình mỗi khách (ARPA)** = (1) / (2). ARPA tổng nằm trong tooltip thẻ MRR; ARPA từng nhóm ở bảng Tổng hợp. Không lên thẻ KPI.
 - **Nhóm thời gian sử dụng:** 0–6 · 7–12 · 13–24 · 25–36 tháng. Phân tích tenure bằng **tỷ lệ rời bỏ theo nhóm**, không so tenure trung bình Active vs Churned (tenure của khách Active còn tăng tiếp).
 - **Nhóm khách theo kỳ đăng ký:** theo quý của `signup_date`, đo tỷ lệ rời bỏ của từng nhóm.
 - **4 lựa chọn chỉ số trong drawer:** MRR · số khách · tỷ lệ khách đã rời bỏ · doanh thu tháng đã mất.
