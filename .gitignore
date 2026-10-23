@@ -1,0 +1,28 @@
+# Lớp chặn thứ hai cho cả repo (app/.gitignore là lớp thứ nhất).
+# Credential KHÔNG BAO GIỜ được commit: .env*, khoá service account, file .pem.
+
+# Biến môi trường — chỉ cho phép file mẫu không có giá trị
+**/.env*
+!**/.env.example
+
+# Khoá Google service account / OAuth nếu lỡ tải về thư mục project
+*.pem
+*.p12
+*.key
+**/*service-account*.json
+**/*serviceaccount*.json
+**/credentials*.json
+**/client_secret*.json
+
+# Build và thư viện
+**/node_modules/
+**/.next/
+**/out/
+**/*.tsbuildinfo
+**/next-env.d.ts
+
+# Vercel, công cụ, hệ điều hành
+**/.vercel
+.claude/settings.local.json
+.DS_Store
+Thumbs.db
