@@ -222,7 +222,7 @@ Mọi vùng dữ liệu phải có đủ — 5 thẻ KPI, 4 card chart mỗi tra
 | Trạng thái | Class | Hiển thị |
 |---|---|---|
 | Đang tải | `.busy` `.spin` | skeleton hoặc spinner |
-| Lỗi | `.err` | thông báo + **nút thử lại** (`i-rotate-ccw`) |
+| Lỗi | `.err` | thông báo + **nút thử lại** (`i-rotate-ccw`). Chỉ hiện câu tiếng Việt kèm việc cần làm ("Liên hệ Admin" / "Thử lại sau…"); `/api/data` trả **mã lỗi** (`missing_env`, `no_access`, `quota`…), chi tiết kỹ thuật chỉ ghi log server. Tải lại lỗi khi đã có số ⇒ giữ dashboard, chấm đỏ ở thanh trên; nút Tải lại khoá khi đang tải |
 | Có dữ liệu | | |
 | **Không dòng nào khớp bộ lọc** | `.empty` | thông báo + **gợi ý nới lọc**, ví dụ "Không có khách nào khớp. Thử chọn `Toàn bộ` thời gian hoặc thêm gói / khu vực." |
 
@@ -270,7 +270,7 @@ Giờ đọc dữ liệu dùng chấm `.led`, không dùng icon đồng hồ.
 - **Màn đăng nhập ở `/`**: logo + tên "SaaS Churn & MRR", một câu mô tả, nút **"Đăng nhập bằng Google"** theo chuẩn nhận diện Google (`#gbtn`, logo G bốn màu — không phải nút brand), ghi chú "Chỉ dành cho người được cấp quyền". Cùng `Shell` 1600×900, `#login` nền `--sub`, card ở giữa. Đã đăng nhập thì vào thẳng `/dashboard`.
 - **Chặn truy cập**: chưa đăng nhập vào `/dashboard` → tự chuyển về `/`. Hai lớp: `proxy.ts` (trang → `/`, API → 401) và `/api/data` tự kiểm tra phiên.
 - **Ai được vào**: chỉ email trong `ALLOWED_EMAILS` (phân tách bằng dấu phẩy; `@congty.vn` cho cả tên miền). Danh sách rỗng ⇒ không ai vào. Email ngoài danh sách → thông báo **"Bạn không có quyền truy cập vui lòng liên hệ Admin"** + email bị từ chối + nút "Đăng nhập bằng tài khoản khác". Gỡ email khỏi danh sách có hiệu lực ở lần tải dữ liệu kế tiếp. Phiên kéo dài 8 giờ.
-- **Góc phải header**: ảnh đại diện Google (26px, tròn; lỗi ảnh → chữ cái đầu trên nền `--brand`) + tên + nút `.ibtn` "Đăng xuất" (`i-log-out`), ngăn với nhóm nút bằng hairline.
+- **Góc phải header**: ảnh đại diện Google (26px, tròn; lỗi ảnh → chữ cái đầu trên nền `--brand`) + tên + nút `.ibtn` "Đăng xuất" (`i-log-out`), ngăn với nhóm nút bằng hairline. Không đọc được phiên vẫn giữ nút Đăng xuất.
 
 Trang 4 liệt kê biến môi trường — chỉ tên, trạng thái có/không lấy từ server, **không bao giờ hiện giá trị**:
 

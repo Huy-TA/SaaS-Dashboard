@@ -51,6 +51,12 @@ export type Alert = {
   value: number;
 };
 
+/* Mã lỗi /api/data trả cho trình duyệt — chỉ mã ngắn, KHÔNG có câu lỗi thô (tên tab, tên biến…).
+   Câu tiếng Việt hiển thị nằm ở errorText() trong lib/aggregate.ts; chi tiết kỹ thuật chỉ ở log server. */
+export type ApiErrorCode =
+  | 'missing_env' | 'bad_credentials' | 'no_access' | 'not_found' | 'empty'
+  | 'quota' | 'network' | 'auth_check' | 'bad_response' | 'unknown';
+
 export type ApiData = {
   rows: Row[];
   count: number;
@@ -58,7 +64,7 @@ export type ApiData = {
   title: string;        // tên file Google Sheet (đọc từ API, không viết cứng)
   fetchedAt: string;    // ISO thời điểm đọc Sheet (theo cache 15 phút)
   env: Record<string, boolean>;   // tên biến môi trường → đã có hay chưa (KHÔNG có giá trị)
-  error?: string;
+  error?: ApiErrorCode;
 };
 
 export type SessionUser = { name?: string | null; email?: string | null; image?: string | null };

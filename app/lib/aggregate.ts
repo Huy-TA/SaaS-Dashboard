@@ -3,7 +3,7 @@
    tính lại từ tổng, không bao giờ là trung bình của tỷ lệ. */
 import { THRESHOLD } from '@/lib/tokens';
 import type {
-  Aggregate, Alert, Filters, Grain, Level, ParamKey, Preset, Row,
+  Aggregate, Alert, ApiErrorCode, Filters, Grain, Level, ParamKey, Preset, Row,
 } from '@/lib/types';
 
 export const APP_NAME = 'SaaS Churn & MRR';
@@ -237,6 +237,24 @@ export function qualityChecks(rows: Row[]): QualityCheck[] {
     ...[...flags.entries()].map(([k, v]) => ({ label: `Data_Flag · ${k}`, value: fmtInt(v), ok: true })),
   ];
 }
+
+/* ── Câu báo lỗi cho người xem (mã từ /api/data) ─────────────────────── */
+
+const ERROR_TEXT: Record<ApiErrorCode, string> = {
+  missing_env:     'Dashboard chưa được cấu hình kết nối dữ liệu. Liên hệ Admin.',
+  bad_credentials: 'Khoá kết nối Google không hợp lệ. Liên hệ Admin.',
+  no_access:       'Dashboard chưa được cấp quyền xem Google Sheet. Liên hệ Admin.',
+  not_found:       'Không tìm thấy Google Sheet hoặc tab dữ liệu. Liên hệ Admin.',
+  empty:           'Google Sheet đang trống. Liên hệ Admin.',
+  quota:           'Google đang giới hạn số lần đọc. Thử lại sau 1 phút.',
+  network:         'Không kết nối được tới Google. Kiểm tra mạng rồi thử lại.',
+  auth_check:      'Không kiểm tra được phiên đăng nhập. Tải lại trang hoặc đăng nhập lại.',
+  bad_response:    'Máy chủ trả về phản hồi không hợp lệ. Thử lại sau ít phút.',
+  unknown:         'Có lỗi không mong muốn khi đọc dữ liệu. Thử lại sau ít phút.',
+};
+
+export const isErrorCode = (v: unknown): v is ApiErrorCode => typeof v === 'string' && v in ERROR_TEXT;
+export const errorText = (code: ApiErrorCode) => ERROR_TEXT[code];
 
 /* ── Định dạng số kiểu Việt Nam (design.md §4) ──────────────────────────── */
 

@@ -20,12 +20,12 @@ import { MatrixTable } from '@/components/charts/MatrixTable';
 import { LGD1, LGD2, SIDE_RAIL, SIDE_WIDE, layout, seriesColor, type Layout } from '@/lib/tokens';
 import {
   CHURN_WARN, DEFAULT_FILTERS, LOST_WARN, PARAMS, PLAN_ORDER, REGION_ORDER, TENURE_GROUPS,
-  agg, alerts as findAlerts, applyScope, applyStatus, byGrain, churnLevel, clockVN, dataBounds,
+  agg, alerts as findAlerts, applyScope, applyStatus, byGrain, churnLevel, clockVN, dataBounds, errorText,
   fmtAxis, fmtDate, fmtInt, fmtParam, fmtPct, fmtUsd, fmtUsdShort, group, lostLevel, matrix,
   metricOf, periodLabel, periodRange, presetRange, previousRange, qualityChecks, rowsForParam,
-  tenureGroup, type GroupRow,
+  isErrorCode, tenureGroup, type GroupRow,
 } from '@/lib/aggregate';
-import type { Aggregate, Alert, ApiData, Filters, Grain, Level, PageId, ParamKey, Row, SessionUser } from '@/lib/types';
+import type { Aggregate, Alert, ApiData, ApiErrorCode, Filters, Grain, Level, PageId, ParamKey, Row, SessionUser } from '@/lib/types';
 
 type LoadState = 'loading' | 'error' | 'ready' | 'signedOut';
 type Theme = 'light' | 'dark';
@@ -46,12 +46,19 @@ function subscribeTheme(cb: () => void) {
   return () => { removeEventListener(THEME_EVENT, cb); removeEventListener('storage', cb); };
 }
 
+/* Mã lỗi trong body JSON của một response hỏng; không đọc được ⇒ 'unknown'. */
+async function codeOf(res: Response): Promise<ApiErrorCode> {
+  const j = (await res.json().catch(() => null)) as { error?: unknown } | null;
+  return isErrorCode(j?.error) ? j.error : 'unknown';
+}
+
 export default function DashboardPage() {
   const [rows, setRows] = useState<Row[]>([]);
   const [state, setState] = useState<LoadState>('loading');
   const [error, setError] = useState('');
   const [refreshError, setRefreshError] = useState('');
-  const loaded = useRef(false);   // đã có số ít nhất một lần ⇒ lỗi tải lại không xoá dashboard
+  const loaded = useRef(false);
+  const inFlight = useRef(false);   // đang tải ⇒ bỏ qua lần bấm dồn   // đã có số ít nhất một lần ⇒ lỗi tải lại không xoá dashboard
   const [fetchedAt, setFetchedAt] = useState('');
   const [sheet, setSheet] = useState({ title: '', tab: '' });
   const router = useRouter();
@@ -80,15 +87,19 @@ export default function DashboardPage() {
 
   /* fresh = người dùng bấm Tải lại / Thử lại ⇒ xoá cache 15 phút trước rồi mới đọc. */
   async function load(fresh = false): Promise<void> {
+    if (inFlight.current) return;
+    inFlight.current = true;
     setBusy(true);
     try {
       if (fresh) {
         const r = await fetch('/api/data', { method: 'POST' });
         if (r.status === 401) { setState('signedOut'); return; }
+        if (!r.ok) throw new Error(await codeOf(r));   // xoá cache hỏng ⇒ báo, không lặng lẽ trả số cũ
       }
       const res = await fetch('/api/data');
       if (res.status === 401) { setState('signedOut'); return; }
-      const json = (await res.json()) as ApiData;
+      const json = (await res.json().catch(() => null)) as ApiData | null;
+      if (!json) throw new Error('bad_response');
       setEnv(json.env ?? {});
       if (json.error) throw new Error(json.error);
       setRows(json.rows);
@@ -101,12 +112,16 @@ export default function DashboardPage() {
       loaded.current = true;
       setState('ready');
     } catch (e) {
-      const msg = e instanceof Error ? e.message : 'Lỗi không xác định';
+      // fetch() ném TypeError khi mất mạng / máy chủ không trả lời
+      const code: ApiErrorCode = e instanceof Error && isErrorCode(e.message) ? e.message
+        : e instanceof TypeError ? 'network' : 'unknown';
+      const msg = errorText(code);
       // Đang có số thì giữ nguyên dashboard, chỉ báo lỗi nhỏ ở thanh trên
       if (loaded.current) { setRefreshError(msg); return; }
       setError(msg);
       setState('error');
     } finally {
+      inFlight.current = false;
       setBusy(false);
     }
   }

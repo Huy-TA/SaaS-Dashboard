@@ -47,7 +47,7 @@ function Login() {
           </p>
 
           <button id="gbtn" disabled={busy}
-                  onClick={() => { setBusy(true); void signIn('google', { callbackUrl: '/dashboard' }); }}>
+                  onClick={() => { setBusy(true); signIn('google', { callbackUrl: '/dashboard' }).catch(() => setBusy(false)); }}>
             <GoogleLogo />
             {busy ? 'Đang chuyển tới Google…' : 'Đăng nhập bằng Google'}
           </button>
@@ -63,9 +63,8 @@ function Login() {
             <div className="err" role="alert">
               <b>Không đăng nhập được</b>
               {error === 'Configuration'
-                ? 'Đăng nhập chưa được cấu hình đủ. Admin cần kiểm tra AUTH_SECRET, AUTH_GOOGLE_ID, AUTH_GOOGLE_SECRET trong .env.local.'
+                ? 'Đăng nhập chưa được cấu hình đủ. Liên hệ Admin.'
                 : 'Google không trả về phiên đăng nhập hợp lệ. Thử lại sau ít phút.'}
-              <code style={{ marginLeft: 4 }}>{error}</code>
             </div>
           )}
 

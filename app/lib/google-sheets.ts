@@ -22,10 +22,9 @@ export async function fetchSheetValues(): Promise<SheetValues> {
   const sheetId    = process.env.GOOGLE_SHEETS_SPREADSHEET_ID ?? '';
 
   if (!privateKey || !email || !sheetId) {
-    throw new Error(
-      'Thiếu biến môi trường. Cần GOOGLE_SHEETS_SPREADSHEET_ID, ' +
-      'GOOGLE_SERVICE_ACCOUNT_EMAIL, GOOGLE_PRIVATE_KEY trong .env.local'
-    );
+    // Thông điệp là MÃ lỗi: route đổi thành câu tiếng Việt, tên biến chỉ ghi ở log server
+    console.error('[sheets] Thiếu GOOGLE_SHEETS_SPREADSHEET_ID / GOOGLE_SERVICE_ACCOUNT_EMAIL / GOOGLE_PRIVATE_KEY');
+    throw new Error('missing_env');
   }
 
   const auth = new google.auth.JWT({

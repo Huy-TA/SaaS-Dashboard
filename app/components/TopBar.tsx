@@ -56,7 +56,8 @@ export function TopBar({
           <i className={`led${busy ? ' busy' : ''}`} style={refreshError && !busy ? { background: 'var(--bad)' } : undefined} />
           {refreshError && !busy ? 'Tải lại lỗi · số lúc' : 'Cập nhật'} <b>{fetchedAt ? clockVN(fetchedAt) : '--:--'}</b>
         </span>
-        <button className={`ibtn icon${busy ? ' spin' : ''}`} onClick={onRefresh} aria-label="Tải lại dữ liệu">
+        <button className={`ibtn icon${busy ? ' spin' : ''}`} onClick={onRefresh} disabled={busy} aria-busy={busy}
+                aria-label="Tải lại dữ liệu">
           <Icon name="refresh-cw" />
         </button>
 
@@ -95,27 +96,28 @@ export function TopBar({
           <Icon name="sliders-horizontal" className="lu lu-sm" />
           Bộ lọc{filterCount ? ` (${filterCount})` : ''}
         </button>
-        {user && <UserCorner user={user} />}
+        <UserCorner user={user} />
       </div>
     </header>
   );
 }
 
-/* Góc tài khoản: ảnh đại diện Google + tên + nút Đăng xuất. Ngăn với nhóm nút bằng hairline. */
-function UserCorner({ user }: { user: SessionUser }) {
+/* Góc tài khoản: ảnh đại diện Google + tên + nút Đăng xuất. Ngăn với nhóm nút bằng hairline.
+   Chưa đọc được phiên (user = null) vẫn giữ nút Đăng xuất. */
+function UserCorner({ user }: { user: SessionUser | null }) {
   const [broken, setBroken] = useState(false);
-  const name = user.name || user.email || '';
+  const name = user?.name || user?.email || '';
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginLeft: 4, paddingLeft: 11,
                   borderLeft: '1px solid var(--line)', height: 29 }}
-         title={user.email ?? undefined}>
-      {user.image && !broken
+         title={user?.email ?? undefined}>
+      {!user ? null : user.image && !broken
         ? <Image src={user.image} alt="" width={26} height={26} unoptimized referrerPolicy="no-referrer"
                  onError={() => setBroken(true)}
                  style={{ borderRadius: '50%', flex: '0 0 26px', border: '1px solid var(--line)' }} />
         : <span className="av" style={{ width: 26, height: 26, flex: '0 0 26px' }}>{name.charAt(0).toUpperCase()}</span>}
-      <span style={{ fontSize: 12.5, fontWeight: 500, color: 'var(--ink)', maxWidth: 140,
-                     overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{name}</span>
+      {user && <span style={{ fontSize: 12.5, fontWeight: 500, color: 'var(--ink)', maxWidth: 140,
+                     overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{name}</span>}
       <button className="ibtn" onClick={() => void signOut({ callbackUrl: '/' })}>
         <Icon name="log-out" className="lu lu-sm" />Đăng xuất
       </button>
