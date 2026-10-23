@@ -1,11 +1,13 @@
 import 'server-only';
-import { cacheLife } from 'next/cache';
+import { cacheLife, cacheTag } from 'next/cache';
 import { google } from 'googleapis';
 
 export const TAB = 'cleaned_subscription_saas';
 const RANGE = `${TAB}!A:I`;
+/* Nút "Tải lại" xoá cache theo tag này (POST /api/data) để đọc Sheet ngay, không chờ 15 phút. */
+export const SHEET_TAG = 'sheet';
 
-export type SheetValues = { values: unknown[][]; fetchedAt: string };
+export type SheetValues = { values: unknown[][]; title: string; fetchedAt: string };
 
 /* Đọc Sheet, cache 15 phút.
    Project bật `cacheComponents`, nên KHÔNG dùng `export const revalidate = 900`
@@ -13,6 +15,7 @@ export type SheetValues = { values: unknown[][]; fetchedAt: string };
 export async function fetchSheetValues(): Promise<SheetValues> {
   'use cache';
   cacheLife({ revalidate: 900 });
+  cacheTag(SHEET_TAG);
 
   const privateKey = (process.env.GOOGLE_PRIVATE_KEY ?? '').replace(/\\n/g, '\n');
   const email      = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL ?? '';
@@ -32,11 +35,18 @@ export async function fetchSheetValues(): Promise<SheetValues> {
   });
 
   const sheets = google.sheets({ version: 'v4', auth });
-  const res = await sheets.spreadsheets.values.get({
-    spreadsheetId: sheetId,
-    range: RANGE,
-    valueRenderOption: 'UNFORMATTED_VALUE',
-  });
+  const [res, meta] = await Promise.all([
+    sheets.spreadsheets.values.get({
+      spreadsheetId: sheetId,
+      range: RANGE,
+      valueRenderOption: 'UNFORMATTED_VALUE',
+    }),
+    sheets.spreadsheets.get({ spreadsheetId: sheetId, fields: 'properties.title' }),
+  ]);
 
-  return { values: (res.data.values ?? []) as unknown[][], fetchedAt: new Date().toISOString() };
+  return {
+    values: (res.data.values ?? []) as unknown[][],
+    title: meta.data.properties?.title ?? '',
+    fetchedAt: new Date().toISOString(),
+  };
 }

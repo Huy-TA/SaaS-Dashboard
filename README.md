@@ -10,7 +10,7 @@ Dashboard/
 │   ├── 1-spec/specification.md
 │   └── 2-design/{design,layout,components}.md
 ├── app/                       ứng dụng Next.js (App Router, TypeScript, Recharts)
-│   ├── app/                   trang: / (giới thiệu) · /dashboard · /api/data
+│   ├── app/                   trang: / (đăng nhập) · /dashboard · /api/data
 │   ├── components/            khung app, thẻ KPI, drawer bộ lọc, bảng xuất, chart
 │   └── lib/                   đọc Google Sheets (server) · tổng hợp số liệu · token thiết kế
 └── .claude/skills/            skill dùng để thiết kế và dựng dashboard

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
+import { revalidateTag } from 'next/cache';
 import { getServerSession } from 'next-auth';
-import { fetchSheetValues, TAB } from '@/lib/google-sheets';
+import { fetchSheetValues, SHEET_TAG, TAB } from '@/lib/google-sheets';
 import { AUTH_ENV, authOptions, isAllowed } from '@/lib/auth';
 import { REGION_UNKNOWN } from '@/lib/aggregate';
 import type { ApiData, Row } from '@/lib/types';
@@ -21,10 +22,10 @@ export async function GET() {
   }
 
   try {
-    const { values, fetchedAt } = await fetchSheetValues();
+    const { values, title, fetchedAt } = await fetchSheetValues();
     if (values.length < 2) {
       return NextResponse.json<ApiData>(
-        { error: 'Sheet rỗng hoặc chỉ có dòng tiêu đề.', rows: [], count: 0, tab: TAB, fetchedAt, env: envStatus() },
+        { error: 'Sheet rỗng hoặc chỉ có dòng tiêu đề.', rows: [], count: 0, tab: TAB, title, fetchedAt, env: envStatus() },
         { status: 200 }
       );
     }
@@ -46,12 +47,22 @@ export async function GET() {
       };
     });
 
-    return NextResponse.json<ApiData>({ rows, count: rows.length, tab: TAB, fetchedAt, env: envStatus() });
+    return NextResponse.json<ApiData>({ rows, count: rows.length, tab: TAB, title, fetchedAt, env: envStatus() });
   } catch (e) {
     const msg = e instanceof Error ? e.message : 'Lỗi không xác định';
     return NextResponse.json<ApiData>(
-      { error: msg, rows: [], count: 0, tab: TAB, fetchedAt: new Date().toISOString(), env: envStatus() },
+      { error: msg, rows: [], count: 0, tab: TAB, title: '', fetchedAt: new Date().toISOString(), env: envStatus() },
       { status: 500 }
     );
   }
+}
+
+/* Nút "Tải lại": bỏ cache 15 phút để lần GET kế tiếp đọc Sheet ngay (expire 0 ⇒ không trả số cũ). */
+export async function POST() {
+  const session = await getServerSession(authOptions);
+  if (!isAllowed(session?.user?.email)) {
+    return NextResponse.json({ error: 'Chưa đăng nhập hoặc không có quyền.' }, { status: 401 });
+  }
+  revalidateTag(SHEET_TAG, { expire: 0 });
+  return NextResponse.json({ ok: true });
 }

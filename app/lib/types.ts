@@ -55,6 +55,7 @@ export type ApiData = {
   rows: Row[];
   count: number;
   tab: string;
+  title: string;        // tên file Google Sheet (đọc từ API, không viết cứng)
   fetchedAt: string;    // ISO thời điểm đọc Sheet (theo cache 15 phút)
   env: Record<string, boolean>;   // tên biến môi trường → đã có hay chưa (KHÔNG có giá trị)
   error?: string;

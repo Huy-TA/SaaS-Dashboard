@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState, useSyncExternalStore } from 'react';
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import { useRouter } from 'next/navigation';
 import { Shell } from '@/components/Shell';
 import { Sidebar } from '@/components/Sidebar';
@@ -50,7 +50,10 @@ export default function DashboardPage() {
   const [rows, setRows] = useState<Row[]>([]);
   const [state, setState] = useState<LoadState>('loading');
   const [error, setError] = useState('');
+  const [refreshError, setRefreshError] = useState('');
+  const loaded = useRef(false);   // đã có số ít nhất một lần ⇒ lỗi tải lại không xoá dashboard
   const [fetchedAt, setFetchedAt] = useState('');
+  const [sheet, setSheet] = useState({ title: '', tab: '' });
   const router = useRouter();
   const [env, setEnv] = useState<Record<string, boolean>>({});
   const [user, setUser] = useState<SessionUser | null>(null);
@@ -75,9 +78,14 @@ export default function DashboardPage() {
       .catch(() => setUser(null));
   }, []);
 
-  async function load(): Promise<void> {
+  /* fresh = người dùng bấm Tải lại / Thử lại ⇒ xoá cache 15 phút trước rồi mới đọc. */
+  async function load(fresh = false): Promise<void> {
     setBusy(true);
     try {
+      if (fresh) {
+        const r = await fetch('/api/data', { method: 'POST' });
+        if (r.status === 401) { setState('signedOut'); return; }
+      }
       const res = await fetch('/api/data');
       if (res.status === 401) { setState('signedOut'); return; }
       const json = (await res.json()) as ApiData;
@@ -85,12 +93,18 @@ export default function DashboardPage() {
       if (json.error) throw new Error(json.error);
       setRows(json.rows);
       setFetchedAt(json.fetchedAt);
+      setSheet({ title: json.title ?? '', tab: json.tab });
+      setRefreshError('');
       const b = dataBounds(json.rows);
       // Mặc định "Toàn bộ": từ ngày nhỏ nhất tới lớn nhất TRONG DỮ LIỆU, không tính từ hôm nay
       setFilters((f) => (f.from ? f : { ...f, ...presetRange('all', b) }));
+      loaded.current = true;
       setState('ready');
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Lỗi không xác định');
+      const msg = e instanceof Error ? e.message : 'Lỗi không xác định';
+      // Đang có số thì giữ nguyên dashboard, chỉ báo lỗi nhỏ ở thanh trên
+      if (loaded.current) { setRefreshError(msg); return; }
+      setError(msg);
       setState('error');
     } finally {
       setBusy(false);
@@ -136,9 +150,9 @@ export default function DashboardPage() {
                rowCount={rows.length} fetchedAt={fetchedAt} />
 
       <main id="main">
-        <TopBar page={page} fetchedAt={fetchedAt} busy={busy} alerts={alertList} user={user}
+        <TopBar page={page} fetchedAt={fetchedAt} busy={busy} refreshError={refreshError} alerts={alertList} user={user}
                 filterCount={filterCount} theme={theme}
-                onRefresh={load} onAlert={openAlert} onExport={() => setModal(true)}
+                onRefresh={() => void load(true)} onAlert={openAlert} onExport={() => setModal(true)}
                 onToggleTheme={toggleTheme} onOpenFilters={() => setDrawer(true)} />
 
         <div id="body" className={page === 'source' ? 'nokpi' : ''} key={theme}>
@@ -156,13 +170,13 @@ export default function DashboardPage() {
                 <b>Không đọc được dữ liệu</b>
                 {error}
                 <br />
-                <button onClick={load}><Icon name="rotate-ccw" className="lu lu-xs" /> Thử lại</button>
+                <button onClick={() => void load(true)}><Icon name="rotate-ccw" className="lu lu-xs" /> Thử lại</button>
               </div>
             </div>
           )}
 
           {state === 'ready' && page === 'source' && (
-            <SourcePage rows={rows} fetchedAt={fetchedAt} bounds={bounds} env={env} L={L} />
+            <SourcePage rows={rows} sheet={sheet} fetchedAt={fetchedAt} bounds={bounds} env={env} L={L} />
           )}
 
           {state === 'ready' && page !== 'source' && (
@@ -595,13 +609,13 @@ const ENV: [string, string][] = [
   ['ALLOWED_EMAILS', 'Danh sách email được vào'],
 ];
 
-function SourcePage({ rows, fetchedAt, bounds, env, L }: {
-  rows: Row[]; fetchedAt: string; bounds: { min: string; max: string }; env: Record<string, boolean>; L: Layout;
+function SourcePage({ rows, sheet, fetchedAt, bounds, env, L }: {
+  rows: Row[]; sheet: { title: string; tab: string }; fetchedAt: string; bounds: { min: string; max: string }; env: Record<string, boolean>; L: Layout;
 }) {
   const info: [string, string][] = [
     ['Nguồn', 'Google Sheets'],
-    ['Spreadsheet', 'cleaned_subscription_saas'],
-    ['Tab', 'cleaned_subscription_saas'],
+    ['Spreadsheet', sheet.title || '—'],
+    ['Tab', sheet.tab],
     ['Số dòng', `${fmtInt(rows.length)} khách`],
     ['Ngày đăng ký', `${fmtDate(bounds.min)} → ${fmtDate(bounds.max)}`],
     ['Quyền', 'Chỉ đọc · service account'],

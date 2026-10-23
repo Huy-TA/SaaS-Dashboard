@@ -13,13 +13,14 @@ const ALERT_TEXT: Record<Alert['metric'], { label: string; limit: string }> = {
 };
 
 export function TopBar({
-  page, fetchedAt, busy, alerts, filterCount, theme, user,
+  page, fetchedAt, busy, refreshError, alerts, filterCount, theme, user,
   onRefresh, onAlert, onExport, onToggleTheme, onOpenFilters,
 }: {
   page: PageId;
   user: SessionUser | null;
   fetchedAt: string;
   busy: boolean;
+  refreshError: string;   // tải lại thất bại nhưng vẫn giữ số cũ
   alerts: Alert[];
   filterCount: number;
   theme: 'light' | 'dark';
@@ -50,9 +51,10 @@ export function TopBar({
       </div>
 
       <div className="topright">
-        <span className="sync">
-          <i className={`led${busy ? ' busy' : ''}`} />
-          Cập nhật <b>{fetchedAt ? clockVN(fetchedAt) : '--:--'}</b>
+        <span className="sync" title={refreshError ? `Tải lại không được: ${refreshError}` : undefined}
+              role={refreshError ? 'alert' : undefined}>
+          <i className={`led${busy ? ' busy' : ''}`} style={refreshError && !busy ? { background: 'var(--bad)' } : undefined} />
+          {refreshError && !busy ? 'Tải lại lỗi · số lúc' : 'Cập nhật'} <b>{fetchedAt ? clockVN(fetchedAt) : '--:--'}</b>
         </span>
         <button className={`ibtn icon${busy ? ' spin' : ''}`} onClick={onRefresh} aria-label="Tải lại dữ liệu">
           <Icon name="refresh-cw" />
